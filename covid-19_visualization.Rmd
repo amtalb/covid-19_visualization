@@ -1,0 +1,75 @@
+---
+title: "COVID-19 Visualization"
+output: html_document
+author: Alexander Talbott
+---
+```{r echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, include=FALSE, warning = FALSE)
+library("sf")
+library(tidyverse)
+library(plotly)
+library("rnaturalearth")
+library("rnaturalearthdata")
+
+options(scipen=4)
+```
+
+```{r}
+covid <- read_csv('covid_19_data.csv')
+world <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/2014_world_gdp_with_codes.csv")
+world <- world %>%
+  rename(country = COUNTRY)%>%
+  rename(code = CODE)
+
+covid <- covid %>%
+  rename(country = `Country/Region`) %>%
+  rename(date = ObservationDate) %>%
+  rename(confirmed = Confirmed) %>%
+  select(-`Last Update`, -SNo) %>%
+  group_by(country, date) %>%
+  summarize_if(is.double, sum)
+
+covid[covid=="Holy See"] <- "Vatican"
+covid[covid=="Mainland China"] <- "China"
+covid[covid=="Bahamas"] <- "Bahamas, The"
+covid[covid=="Cape Verde"] <- "Cabo Verde"
+covid[covid=="Congo (Brazzaville)"] <- "Congo, Republic of the"
+covid[covid=="Congo (Kinshasa)"] <- "Congo, Democratic Republic of the"
+covid[covid=="Eswatini"] <- "Swaziland"
+covid[covid=="East Timor"] <- "Timor-Leste"
+covid[covid=="Ivory Coast"] <- "Cote d'Ivoire"
+covid[covid=="('St. Martin',)"] <- "Sint Maarten"
+covid[covid=="Ivory Coast"] <- "Cote d'Ivoire"
+covid[covid=="Gambia"] <- "Gambia, The"
+covid[covid=="Republic of Ireland"] <- "Ireland"
+covid[covid=="West Bank and Gaza"] <- "Palestine"
+covid[covid=="South Korea"] <- "Korea, South"
+covid[covid=="UK"] <- "United Kingdom"
+covid[covid=="US"] <- "United States"
+
+covid <- covid %>%
+  merge(world, all.x = TRUE) %>%
+  select(country, date, confirmed, code) %>%
+  arrange(country, date)
+
+march_covid <- covid %>%
+  subset(date == '03/01/2020')
+```
+
+```{r include=TRUE, out.height = "100%",  out.width = "100%"}
+fig <- plot_ly(covid,
+               type='choropleth',
+               locations=covid$code, 
+               z=covid$confirmed, 
+               text=covid$country, 
+               colorscale="Viridis",
+               frame=covid$date)
+
+fig <- fig %>% colorbar(title = "Cases")
+fig <- fig %>% layout(
+    title = "Coronavirus Cases Over Time"
+)
+
+fig
+```
+
